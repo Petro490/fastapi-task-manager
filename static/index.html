@@ -1,0 +1,244 @@
+ <!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG Task Manager — Панель Героя</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #1a1a24; 
+            color: #f5f5fa; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 30px; 
+            margin: 0;
+        }
+        h1 { margin-bottom: 25px; color: #f1c40f; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .game-layout { display: flex; gap: 25px; width: 100%; max-width: 950px; }
+        .panel { background: #252533; padding: 25px; border-radius: 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); border: 1px solid #3a3a4f; width: 100%; box-sizing: border-box; }
+        .hero-panel { flex: 1; text-align: center; height: fit-content; }
+        .tasks-panel { flex: 1.8; }
+        .shop-panel { width: 100%; max-width: 950px; margin-top: 25px; }
+        h3 { margin-top: 0; color: #f1c40f; border-bottom: 2px solid #3a3a4f; padding-bottom: 8px; font-size: 20px; }
+        .stat-row { display: flex; justify-content: space-between; margin: 12px 0; font-size: 17px; }
+        .gold-count { color: #f1c40f; font-weight: bold; }
+        .xp-container { background: #3a3a4f; width: 100%; height: 18px; border-radius: 9px; margin-top: 15px; overflow: hidden; border: 1px solid #555; }
+        .xp-bar { background: #3498db; width: 0%; height: 100%; transition: width 0.5s ease-in-out; }
+        .xp-text { font-size: 13px; margin-top: 6px; color: #bbb; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input, select, button { padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; }
+        input[type="text"] { flex: 2; background: #333344; color: white; border: 1px solid #44445c; }
+        input[type="text"]::placeholder { color: #888; }
+        select { background: #333344; color: white; border: 1px solid #44445c; cursor: pointer; }
+        button { background: #2ecc71; color: white; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #27ae60; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li { background: #2e2e40; display: flex; justify-content: space-between; align-items: center; padding: 14px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid #e67e22; }
+        li.done { opacity: 0.4; text-decoration: line-through; border-left-color: #7f8c8d; }
+        .quest-info { display: flex; flex-direction: column; gap: 4px; }
+        .reward-tag { background: #e67e22; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; width: fit-content; font-weight: bold; }
+        .action-btns { display: flex; gap: 8px; }
+        .btn-complete { background: #3498db; }
+        .btn-complete:hover { background: #2980b9; }
+        .btn-delete { background: #e74c3c; }
+        .btn-delete:hover { background: #c0392b; }
+        .shop-grid { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px; }
+        .shop-item { background: #2e2e40; padding: 20px; border-radius: 10px; flex: 1; min-width: 220px; text-align: center; border: 1px solid #f1c40f; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .buy-btn { background: #f1c40f; color: #1a1a24; width: 100%; margin-top: 12px; }
+        .buy-btn:hover { background: #d4ac0d; }
+    </style>
+</head>
+<body>
+
+<h1>⚔️ RPG Quest Journal & Hero Dashboard</h1>
+
+<div class="game-layout">
+    <div class="panel hero-panel">
+        <h3>🛡️ Карточка Персонажа</h3>
+        <h2 id="heroLevel" style="color: #2ecc71; margin: 10px 0; font-size: 28px;">Уровень 1</h2>
+        <div class="stat-row"><span>🪙 Золото в кошельке:</span><span id="heroGold" class="gold-count">0 G</span></div>
+        <div class="xp-container"><div id="xpBar" class="xp-bar"></div></div>
+        <div id="xpText" class="xp-text">0 / 100 XP</div>
+        
+        <h4 style="margin-top: 25px; text-align: left; color: #bbb; border-bottom: 1px solid #3a3a4f; padding-bottom: 4px;">Характеристики:</h4>
+        <div class="stat-row"><span>🧠 Интеллект (Учеба):</span><span id="statInt" style="color: #3498db; font-weight: bold;">10</span></div>
+        <div class="stat-row"><span>💪 Сила (Спорт/Дом):</span><span id="statStr" style="color: #e74c3c; font-weight: bold;">10</span></div>
+        <div class="stat-row"><span>⚡ Ловкость (Работа):</span><span id="statAgility" style="color: #2ecc71; font-weight: bold;">10</span></div>
+    </div>
+
+    <div class="panel tasks-panel">
+        <h3>📜 Журнал Доступных Квестов</h3>
+        <div class="input-group">
+            <input type="text" id="taskTitle" placeholder="Какое великое дело предстоит совершить?">
+            <select id="taskCategory"></select>
+            <button onclick="addTask()">Взять Квест</button>
+        </div>
+        <ul id="taskList"></ul>
+    </div>
+</div>
+
+<div class="panel shop-panel">
+    <h3>🏪 Золотая Лавка Наград (Трать золото на отдых!)</h3>
+    <div id="shopGrid" class="shop-grid"></div>
+</div>
+
+<script>
+    async function loadHero() {
+        const res = await fetch('/hero');
+        const hero = await res.json();
+        document.getElementById('heroLevel').textContent = 'Уровень ' + hero.level;
+        document.getElementById('heroGold').textContent = hero.gold + ' G';
+        document.getElementById('statInt').textContent = hero.intellect;
+        document.getElementById('statStr').textContent = hero.strength;
+        document.getElementById('statAgility').textContent = hero.agility;
+        
+        const pct = (hero.xp / hero.xp_to_next_level) * 100;
+        document.getElementById('xpBar').style.width = pct + '%';
+        document.getElementById('xpText').textContent = hero.xp + ' / ' + hero.xp_to_next_level + ' XP';
+    }
+
+    async function loadCategories() {
+        const res = await fetch('/categories');
+        const categories = await res.json();
+        const select = document.getElementById('taskCategory');
+        select.innerHTML = '';
+        categories.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.name;
+            select.appendChild(opt);
+        });
+    }
+
+    async function loadTasks() {
+        const res = await fetch('/tasks');
+        const tasks = await res.json();
+        const list = document.getElementById('taskList');
+        list.innerHTML = '';
+        
+        tasks.forEach(t => {
+            const li = document.createElement('li');
+            if (t.done) li.className = 'done';
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'quest-info';
+            infoDiv.innerHTML = `<span style="font-size: 16px; font-weight: 500;">${t.title}</span><span class="reward-tag">${t.category_name} | ${t.reward_info}</span>`;
+            
+            const btnsDiv = document.createElement('div');
+            btnsDiv.className = 'action-btns';
+            
+            if (!t.done) {
+                const compBtn = document.createElement('button');
+                compBtn.className = 'btn-complete';
+                compBtn.textContent = 'Сдать Квест';
+                compBtn.onclick = function() { completeTask(t.id); };
+                btnsDiv.appendChild(compBtn);
+            } else {
+                const spanDone = document.createElement('span');
+                spanDone.textContent = '💎 Выполнено';
+                btnsDiv.appendChild(spanDone);
+            }
+            
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-delete';
+            delBtn.textContent = '❌';
+            delBtn.onclick = function() { deleteTask(t.id); };
+            btnsDiv.appendChild(delBtn);
+            
+            li.appendChild(infoDiv);
+            li.appendChild(btnsDiv);
+            list.appendChild(li);
+        });
+    }
+
+    async function loadShop() {
+        const res = await fetch('/shop');
+        const items = await res.json();
+        const grid = document.getElementById('shopGrid');
+        grid.innerHTML = '';
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            
+            const titleDiv = document.createElement('div');
+            titleDiv.style.fontSize = '16px';
+            titleDiv.style.fontWeight = 'bold';
+            titleDiv.style.marginBottom = '5px';
+            titleDiv.textContent = item.name;
+            
+            const costDiv = document.createElement('div');
+            costDiv.style.color = '#f1c40f';
+            costDiv.style.fontSize = '15px';
+            costDiv.style.fontWeight = 'bold';
+            costDiv.textContent = 'Стоимость: ' + item.cost + ' G';
+            
+            const buyBtn = document.createElement('button');
+            buyBtn.className = 'buy-btn';
+            buyBtn.textContent = 'Забрать Награду';
+            buyBtn.onclick = function() { buyItem(item.id); };
+            
+            div.appendChild(titleDiv);
+            div.appendChild(costDiv);
+            div.appendChild(buyBtn);
+            grid.appendChild(div);
+        });
+    }
+
+    async function addTask() {
+        const titleInput = document.getElementById('taskTitle');
+        const catSelect = document.getElementById('taskCategory');
+        if (!titleInput.value.trim() || !catSelect.value) return;
+
+        await fetch('/tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                title: titleInput.value, 
+                category_id: parseInt(catSelect.value) 
+            })
+        });
+        titleInput.value = '';
+        await loadTasks();
+    }
+
+    async function completeTask(id) {
+        const res = await fetch('/tasks/' + id, { method: 'PATCH' });
+        const data = await res.json();
+        if (data.level_up) {
+            alert("🎉 СЛАВНАЯ ПОБЕДА! Вы повысили свой УРОВЕНЬ! Ваши силы растут!");
+        }
+        await loadHero();
+        await loadTasks();
+    }
+
+    async function deleteTask(id) {
+        await fetch('/tasks/' + id, { method: 'DELETE' });
+        await loadTasks();
+    }
+
+    async function buyItem(id) {
+        const res = await fetch('/shop/buy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ item_id: id })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message);
+        } else {
+            alert("⚠️ Игровой магазин: " + data.detail);
+        }
+        await loadHero();
+    }
+
+    async function init() {
+        await loadHero();
+        await loadCategories(); 
+        await loadTasks();      
+        await loadShop();
+    }
+    
+    init();
+</script>
